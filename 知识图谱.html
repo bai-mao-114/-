@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>甲骨文知识图谱 — GraphRAG 可视化</title>
+<script src="知识图谱_files/vis-data.min.js"></script>
+<script src="知识图谱_files/vis-network.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif; background: #f0f2f5; height: 100vh; display: flex; flex-direction: column; }
+
+  .header {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    color: #e0e0e0; padding: 12px 24px;
+    display: flex; align-items: center; justify-content: space-between;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+  }
+  .header h1 { font-size: 1.3em; font-weight: 600; }
+  .header .subtitle { font-size: 0.8em; color: #8892b0; }
+
+  .main { display: flex; flex: 1; overflow: hidden; }
+
+  .sidebar { width: 320px; background: #fff; border-right: 1px solid #e0e0e0; overflow-y: auto; padding: 16px; }
+  .sidebar h3 { font-size: 1em; margin-bottom: 12px; color: #1a1a2e; border-bottom: 2px solid #3498db; padding-bottom: 6px; }
+
+  .stat-item { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #f0f0f0; font-size: 0.85em; }
+  .stat-item .val { font-weight: 700; color: #1a1a2e; }
+
+  .legend { margin-top: 16px; }
+  .legend-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 0.85em; }
+  .legend-dot { width: 14px; height: 14px; border-radius: 50%; display: inline-block; }
+
+  .community-card {
+    background: #f8f9fa; border-radius: 8px; padding: 10px; margin: 8px 0;
+    border-left: 3px solid #3498db; font-size: 0.82em; cursor: pointer;
+    transition: all 0.2s;
+  }
+  .community-card:hover { background: #e8f4fd; }
+  .community-card .comm-title { font-weight: 600; margin-bottom: 4px; }
+  .community-card .comm-summary { color: #666; line-height: 1.4; }
+
+  #graph-container { flex: 1; background: #fafbfc; position: relative; }
+  #graph { width: 100%; height: 100%; }
+
+  .search-bar {
+    position: absolute; top: 16px; left: 16px; z-index: 10;
+    background: white; border-radius: 24px; padding: 8px 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15); display: flex; gap: 8px;
+  }
+  .search-bar input {
+    border: none; outline: none; font-size: 0.9em; width: 200px;
+  }
+  .search-bar button {
+    background: #3498db; color: white; border: none; border-radius: 16px;
+    padding: 4px 14px; cursor: pointer; font-size: 0.85em;
+  }
+  .search-bar button:hover { background: #2980b9; }
+
+  .detail-panel {
+    position: absolute; top: 16px; right: 16px; z-index: 10;
+    background: white; border-radius: 12px; padding: 16px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15); max-width: 360px;
+    display: none; font-size: 0.85em; line-height: 1.5;
+  }
+  .detail-panel.show { display: block; }
+  .detail-panel h3 { margin-bottom: 8px; color: #1a1a2e; }
+  .detail-panel .type-badge {
+    display: inline-block; padding: 2px 10px; border-radius: 12px;
+    color: white; font-size: 0.78em; margin-bottom: 8px;
+  }
+  .detail-panel .close-btn {
+    position: absolute; top: 8px; right: 12px; cursor: pointer;
+    font-size: 1.2em; color: #999;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>甲骨文知识图谱</h1>
+    <div class="subtitle">Oracle Bone Inscriptions Knowledge Graph — Powered by GraphRAG + DeepSeek</div>
+  </div>
+  <div style="text-align:right">
+    <div style="font-size:0.85em">实体: 40 &nbsp;|&nbsp; 关系: 40 &nbsp;|&nbsp; 社区: 4</div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="sidebar">
+    <h3>📊 统计概览</h3>
+    <div class="stat-item"><span>总实体数</span><span class="val">40</span></div>
+    <div class="stat-item"><span>总关系数</span><span class="val">40</span></div>
+    <div class="stat-item"><span>社区数</span><span class="val">4</span></div>
+    <div style="margin-top:8px">
+<div class="stat-item"><span>EVENT</span><span class="val">18</span></div><div class="stat-item"><span>PERSON</span><span class="val">14</span></div><div class="stat-item"><span>GEO</span><span class="val">7</span></div><div class="stat-item"><span>ORGANIZATION</span><span class="val">1</span></div>
+    </div>
+
+    <div class="legend">
+      <h3>🎨 图例</h3>
+<div class="legend-item"><span class="legend-dot" style="background:#e74c3c"></span>人物 (14)</div><div class="legend-item"><span class="legend-dot" style="background:#3498db"></span>事件 (18)</div><div class="legend-item"><span class="legend-dot" style="background:#2ecc71"></span>地理 (7)</div><div class="legend-item"><span class="legend-dot" style="background:#f39c12"></span>组织 (1)</div>
+    </div>
+
+    <h3 style="margin-top:20px">🏘️ 社区报告</h3>
+<div class="community-card" onclick="highlightCommunity('0')"><div class="comm-title">社区 0...</div><div class="comm-summary">The community consists of a network of Shang dynasty diviners—殻 (Que), 殽 (Xiao), 散 (San), and 爭 (Zheng)—who performed crack-making divinations regardi...</div><div style="margin-top:4px;color:#f39c12">⭐ 0.0</div></div><div class="community-card" onclick="highlightCommunity('1')"><div class="comm-title">社区 1...</div><div class="comm-summary">This community centers on the Shang dynasty king, referred to as &#x27;王&#x27; (King), and his direct relationship with the location &#x27;商&#x27; (Shang), likely a capit...</div><div style="margin-top:4px;color:#f39c12">⭐ 0.0</div></div><div class="community-card" onclick="highlightCommunity('2')"><div class="comm-title">社区 2...</div><div class="comm-summary">This community centers on the diviners Zheng and Nei, who performed crack-making divinations for the Shang king on specific days (Gengxu, Xinwei, and ...</div><div style="margin-top:4px;color:#f39c12">⭐ 0.0</div></div><div class="community-card" onclick="highlightCommunity('3')"><div class="comm-title">社区 3...</div><div class="comm-summary">This community centers around the collective entity &#x27;我&#x27; (the Shang state or royal clan), which is involved in divination rituals that include offering...</div><div style="margin-top:4px;color:#f39c12">⭐ 0.0</div></div>
+  </div>
+
+  <div id="graph-container">
+    <div class="search-bar">
+      <input type="text" id="search-input" placeholder="搜索实体..." onkeyup="if(event.key==='Enter')searchNode()">
+      <button onclick="searchNode()">搜索</button>
+      <button onclick="resetGraph()" style="background:#95a5a6">重置</button>
+    </div>
+    <div class="detail-panel" id="detail-panel">
+      <span class="close-btn" onclick="closeDetail()">&times;</span>
+      <div id="detail-content"></div>
+    </div>
+    <div id="graph"></div>
+  </div>
+</div>
+
+<script>
+const nodes = new vis.DataSet([{"id": 0, "label": "王", "title": "<b>王</b><br>类型: PERSON<br>度数: 30<br><i>The entity referred to as &quot;王&quot; (king) in the context of Shang dynasty oracle bone inscriptions is a central figure of authority and ritual. This king, likely a ruler of the Shang dynasty, is frequently...</i>", "type": "PERSON", "group": "PERSON", "color": "#e74c3c", "value": 30, "degree": 30, "desc": "The entity referred to as \"王\" (king) in the context of Shang dynasty oracle bone inscriptions is a central figure of authority and ritual. This king, likely a ruler of the Shang dynasty, is frequently documented performing ceremonial entries into the city of Shang (商) during specific months, as reco"}, {"id": 1, "label": "商", "title": "<b>商</b><br>类型: GEO<br>度数: 1<br><i>Based on the provided descriptions, **商 (Shang)** refers to a specific geographical location, most likely a capital city or a ritual center of great significance. In the context of the oracle bone ins...</i>", "type": "GEO", "group": "GEO", "color": "#2ecc71", "value": 1, "degree": 1, "desc": "Based on the provided descriptions, **商 (Shang)** refers to a specific geographical location, most likely a capital city or a ritual center of great significance. In the context of the oracle bone inscriptions, the entity \"商\" is repeatedly referenced as a destination that the king is divined to eith"}, {"id": 2, "label": "争", "title": "<b>争</b><br>类型: PERSON<br>度数: 4<br><i>争 (Zheng) is a diviner (卜人) who performed several crack-making (divination) rituals, as recorded in the oracle bone inscriptions. As a diviner, Zheng was responsible for conducting crack-making divina...</i>", "type": "PERSON", "group": "PERSON", "color": "#e74c3c", "value": 4, "degree": 4, "desc": "争 (Zheng) is a diviner (卜人) who performed several crack-making (divination) rituals, as recorded in the oracle bone inscriptions. As a diviner, Zheng was responsible for conducting crack-making divinations, a key ritual practice during the Shang dynasty that involved interpreting the cracks formed o"}, {"id": 3, "label": "内", "title": "<b>内</b><br>类型: PERSON<br>度数: 2<br><i>A diviner (named Nei) who performed a divination about the king entering Shang...</i>", "type": "PERSON", "group": "PERSON", "color": "#e74c3c", "value": 2, "degree": 2, "desc": "A diviner (named Nei) who performed a divination about the king entering Shang"}, {"id": 4, "label": "殻", "title": "<b>殻</b><br>类型: PERSON<br>度数: 2<br><i>Regarding the entity **殻 (Que)**, the available descriptions establish that Que was a **diviner (卜人)** active during the Shang dynasty. Que&#x27;s primary role involved performing **crack-making divination...</i>", "type": "PERSON", "group": "PERSON", "color": "#e74c3c", "value": 2, "degree": 2, "desc": "Regarding the entity **殻 (Que)**, the available descriptions establish that Que was a **diviner (卜人)** active during the Shang dynasty. Que's primary role involved performing **crack-making divinations**, a key ritual practice of the period. One specific recorded divination conducted by Que concerne"}, {"id": 5, "label": "戊", "title": "<b>戊</b><br>类型: PERSON<br>度数: 1<br><i>A person (or official named Wu) who is commanded to go to the fields, likely a subordinate of the king...</i>", "type": "PERSON", "group": "PERSON", "color": "#e74c3c", "value": 1, "degree": 1, "desc": "A person (or official named Wu) who is commanded to go to the fields, likely a subordinate of the king"}, {"id": 6, "label": "匚", "title": "<b>匚</b><br>类型: GEO<br>度数: 1<br><i>A place name (likely a location or region) mentioned in relation to the king going out and performing rituals or inspections...</i>", "type": "GEO", "group": "GEO", "color": "#2ecc71", "value": 1, "degree": 1, "desc": "A place name (likely a location or region) mentioned in relation to the king going out and performing rituals or inspections"}, {"id": 7, "label": "羌甲", "title": "<b>羌甲</b><br>类型: PERSON<br>度数: 1<br><i>A person or ancestor (likely Qiang Jia) who is the subject of a sacrificial offering (侑)...</i>", "type": "PERSON", "group": "PERSON", "color": "#e74c3c", "value": 1, "degree": 1, "desc": "A person or ancestor (likely Qiang Jia) who is the subject of a sacrificial offering (侑)"}, {"id": 8, "label": "庚戌", "title": "<b>庚戌</b><br>类型: EVENT<br>度数: 3<br><i>A specific day (Gengxu) on which multiple divinations were performed, including ones about the king entering Shang...</i>", "type": "EVENT", "group": "EVENT", "color": "#3498db", "value": 3, "degree": 3, "desc": "A specific day (Gengxu) on which multiple divinations were performed, including ones about the king entering Shang"}, {"id": 9, "label": "辛亥", "title": "<b>辛亥</b><br>类型: EVENT<br>度数: 1<br><i>A specific day (Xinhai) on which the king&#x27;s entry into a location was divined...</i>", "type": "EVENT", "group": "EVENT", "color": "#3498db", "value": 1, "degree": 1, "desc": "A specific day (Xinhai) on which the king's entry into a location was divined"}, {"id": 10, "label": "乙卯", "title": "<b>乙卯</b><br>类型: EVENT<br>度数: 1<br><i>A specific day (Yimao) on which the king&#x27;s entry and actions (such as not &quot;橐&quot;) were divined...</i>", "type": "EVENT", "group": "EVENT", "color": "#3498db", "value": 1, "degree": 1, "desc": "A specific day (Yimao) on which the king's entry and actions (such as not \"橐\") were divined"}, {"id": 11, "label": "辛未", "title": "<b>辛未</b><br>类型: EVENT<br>度数: 2<br><i>A specific day (Xinwei) on which multiple divinations about the king&#x27;s evening travel and entry into Shang in the seventh month were recorded...</i>", "type": "EVENT", "group": "EVENT", "color": "#3498db", "value": 2, "degree": 2, "desc": "A specific day (Xinwei) on which multiple divinations about the king's evening travel and entry into Shang in the seventh month were recorded"}, {"id": 12, "label": "甲寅", "title": "<b>甲寅</b><br>类型: EVENT<br>度数: 1<br><i>A specific day (Jiayin) on which the diviner Zheng performed a divination...</i>", "type": "EVENT", "group": "EVENT", "color": "#3498db", "value": 1, "degree": 1, "desc": "A specific day (Jiayin) on which the diviner Zheng performed a divination"}, {"id": 13, "label": "己酉", "title": "<b>己酉</b><br>类型: EVENT<br>度数: 0<br><i>A specific day (Jiyou) on which a divination was performed...</i>", "type": "EVENT", "group": "EVENT", "color": "#3498db", "value": 1, "degree": 0, "desc": "A specific day (Jiyou) on which a divination was performed"}, {"id": 14, "label": "丙午", "title": "<b>丙午</b><br>类型: EVENT<br>度数: 0<br><i>A specific day (Bingwu) on which a divination was performed by diviner x...</i>", "type": "EVENT", "group": "EVENT", "color": "#3498db", "value": 1, "degree": 0, "desc": "A specific day (Bingwu) on which a divination was performed by diviner x"}, {"id": 15, "label": "今二月", "title": "<b>今二月</b><br>类型: EVENT<br>度数: 1<br><i>The event of the current second month, during which the king&#x27;s entry into Shang was divined...</i>", "type": "EVENT", "group": "EVENT", "color": "#3498db", "value": 1, "degree": 1, "desc": "The event of the current second month, during which the king's entry into Shang was divined"}, {"id": 16, "label": "今六月", "title": "<b>今六月</b><br>类型: EVENT<br>度数: 1<br><i>The event of the current sixth month, during which the king&#x27;s entry into Shang was divined...</i>", "type": "EVENT", "group": "EVENT", "color": "#3498db", "value": 1, "degree": 1, "desc": "The event of the current sixth month, during which the king's entry into Shang was divined"}, {"id": 17, "label": "生七月", "title": "<b>生七月</b><br>类型: EVENT<br>度数: 1<br><i>The event of the coming seventh month, during which the king&#x27;s entry into Shang was divined multiple times...</i>", "type": "EVENT", "group": "EVENT", "color": "#3498db", "value": 1, "degree": 1, "desc": "The event of the coming seventh month, during which the king's entry into Shang was divined multiple times"}, {"id": 18, "label": "南", "title": "<b>南</b><br>类型: GEO<br>度数: 1<br><i>A southern region or direction that the king considered visiting or inspecting, as divined by Zheng...</i>", "type": "GEO", "group": "GEO", "color": "#2ecc71", "value": 1, "degree": 1, "desc": "A southern region or direction that the king considered visiting or inspecting, as divined by Zheng"}, {"id": 19, "label": "节耻", "title": "<b>节耻</b><br>类型: GEO<br>度数: 1<br><i>A place name (likely a location or boundary) where the king was divined to go out and perform a ritual (&quot;昙&quot;)...</i>", "type": "GEO", "group": "GEO", "color": "#2ecc71", "value": 1, "degree": 1, "desc": "A place name (likely a location or boundary) where the king was divined to go out and perform a ritual (\"昙\")"}, {"id": 20, "label": "冇", "title": "<b>冇</b><br>类型: GEO<br>度数: 1<br><i>A place name where the king was divined to go out and avoid a certain action (&quot;勿曷&quot;)...</i>", "type": "GEO", "group": "GEO", "color": "#2ecc71", "value": 1, "degree": 1, "desc": "A place name where the king was divined to go out and avoid a certain action (\"勿曷\")"}, {"id": 21, "label": "酝聂", "title": "<b>酝聂</b><br>类型: PERSON<br>度数: 1<br><i>A person named Yun Nie who was summoned or called upon (乎), likely by the king...</i>", "type": "PERSON", "group": "PERSON", "color": "#e74c3c", "value": 1, "degree": 1, "desc": "A person named Yun Nie who was summoned or called upon (乎), likely by the king"}, {"id": 22, "label": "示", "title": "<b>示</b><br>类型: PERSON<br>度数: 1<br><i>A person or official who was divined about performing a ritual of showing or presenting (示)...</i>", "type": "PERSON", "group": "PERSON", "color": "#e74c3c", "value": 1, "degree": 1, "desc": "A person or official who was divined about performing a ritual of showing or presenting (示)"}, {"id": 23, "label": "田", "title": "<b>田</b><br>类型: PERSON<br>度数: 0<br><i>A person or official (Tian) who was divined not to be summoned (勿乎田), possibly a field officer...</i>", "type": "PERSON", "group": "PERSON", "color": "#e74c3c", "value": 1, "degree": 0, "desc": "A person or official (Tian) who was divined not to be summoned (勿乎田), possibly a field officer"}, {"id": 24, "label": "我", "title": "<b>我</b><br>类型: ORGANIZATION<br>度数: 3<br><i>The collective &quot;we&quot; or &quot;our&quot; (likely the Shang state or royal clan) that is divined to offer cattle and sheep...</i>", "type": "ORGANIZATION", "group": "ORGANIZATION", "color": "#f39c12", "value": 3, "degree": 3, "desc": "The collective \"we\" or \"our\" (likely the Shang state or royal clan) that is divined to offer cattle and sheep"}, {"id": 25, "label": "束羊", "title": "<b>束羊</b><br>类型: EVENT<br>度数: 1<br><i>An event or ritual involving bundled sheep as part of a sacrifice...</i>", "type": "EVENT", "group": "EVENT", "color": "#3498db", "value": 1, "degree": 1, "desc": "An event or ritual involving bundled sheep as part of a sacrifice"}, {"id": 26, "label": "凡牛", "title": "<b>凡牛</b><br>类型: EVENT<br>度数: 1<br><i>An event or ritual involving ordinary cattle as part of a sacrifice...</i>", "type": "EVENT", "group": "EVENT", "color": "#3498db", "value": 1, "degree": 1, "desc": "An event or ritual involving ordinary cattle as part of a sacrifice"}, {"id": 27, "label": "卯", "title": "<b>卯</b><br>类型: EVENT<br>度数: 1<br><i>A ritual event of cutting or splitting (卯) that was divined about...</i>", "type": "EVENT", "group": "EVENT", "color": "#3498db", "value": 1, "degree": 1, "desc": "A ritual event of cutting or splitting (卯) that was divined about"}, {"id": 28, "label": "复", "title": "<b>复</b><br>类型: EVENT<br>度数: 1<br><i>An event of returning or restoring (复) that the king was divined about...</i>", "type": "EVENT", "group": "EVENT", "color": "#3498db", "value": 1, "degree": 1, "desc": "An event of returning or restoring (复) that the king was divined about"}, {"id": 29, "label": "殽", "title": "<b>殽</b><br>类型: PERSON<br>度数: 2<br><i>殽（Xiao）is a diviner (卜人) who specializes in conducting crack-making divinations, the process of interpreting oracle bone inscriptions by heating bones or shells to produce cracks that were then read a...</i>", "type": "PERSON", "group": "PERSON", "color": "#e74c3c", "value": 2, "degree": 2, "desc": "殽（Xiao）is a diviner (卜人) who specializes in conducting crack-making divinations, the process of interpreting oracle bone inscriptions by heating bones or shells to produce cracks that were then read as messages from ancestors or spirits. Among the records associated with 殽, the primary surviving que"}, {"id": 30, "label": "七月", "title": "<b>七月</b><br>类型: EVENT<br>度数: 5<br><i>The seventh month (七月) is a specific time period referenced as the scheduled time for the king&#x27;s entry into Shang...</i>", "type": "EVENT", "group": "EVENT", "color": "#3498db", "value": 5, "degree": 5, "desc": "The seventh month (七月) is a specific time period referenced as the scheduled time for the king's entry into Shang"}, {"id": 31, "label": "八月", "title": "<b>八月</b><br>类型: EVENT<br>度数: 1<br><i>The eighth month (八月) is a specific time period referenced as an alternative or later time for the king&#x27;s entry into Shang...</i>", "type": "EVENT", "group": "EVENT", "color": "#3498db", "value": 1, "degree": 1, "desc": "The eighth month (八月) is a specific time period referenced as an alternative or later time for the king's entry into Shang"}, {"id": 32, "label": "散", "title": "<b>散</b><br>类型: PERSON<br>度数: 1<br><i>散 (San) is a diviner who appears in one divination about the king&#x27;s entry in the seventh month...</i>", "type": "PERSON", "group": "PERSON", "color": "#e74c3c", "value": 1, "degree": 1, "desc": "散 (San) is a diviner who appears in one divination about the king's entry in the seventh month"}, {"id": 33, "label": "爭", "title": "<b>爭</b><br>类型: PERSON<br>度数: 1<br><i>爭 (Zheng) is a diviner who conducts crack-making divinations, asking about the king&#x27;s entry...</i>", "type": "PERSON", "group": "PERSON", "color": "#e74c3c", "value": 1, "degree": 1, "desc": "爭 (Zheng) is a diviner who conducts crack-making divinations, asking about the king's entry"}, {"id": 34, "label": "姬", "title": "<b>姬</b><br>类型: PERSON<br>度数: 1<br><i>姬 (Ji) is a person or clan name mentioned briefly in one inscription...</i>", "type": "PERSON", "group": "PERSON", "color": "#e74c3c", "value": 1, "degree": 1, "desc": "姬 (Ji) is a person or clan name mentioned briefly in one inscription"}, {"id": 35, "label": "母庚", "title": "<b>母庚</b><br>类型: PERSON<br>度数: 1<br><i>母庚 (Mother Geng) is a specific female ancestor or spirit that receives ritual offering (佑) in inscription 07780...</i>", "type": "PERSON", "group": "PERSON", "color": "#e74c3c", "value": 1, "degree": 1, "desc": "母庚 (Mother Geng) is a specific female ancestor or spirit that receives ritual offering (佑) in inscription 07780"}, {"id": 36, "label": "光", "title": "<b>光</b><br>类型: GEO<br>度数: 0<br><i>光 (Guang) is a place name mentioned in inscription 07985...</i>", "type": "GEO", "group": "GEO", "color": "#2ecc71", "value": 1, "degree": 0, "desc": "光 (Guang) is a place name mentioned in inscription 07985"}, {"id": 37, "label": "西", "title": "<b>西</b><br>类型: GEO<br>度数: 1<br><i>西 (West) is a cardinal direction mentioned in inscription 07990 reverse, from which a report comes...</i>", "type": "GEO", "group": "GEO", "color": "#2ecc71", "value": 1, "degree": 1, "desc": "西 (West) is a cardinal direction mentioned in inscription 07990 reverse, from which a report comes"}, {"id": 38, "label": "沈", "title": "<b>沈</b><br>类型: EVENT<br>度数: 1<br><i>沈 (submersion/drowning) is a ritual event mentioned in inscription 07985...</i>", "type": "EVENT", "group": "EVENT", "color": "#3498db", "value": 1, "degree": 1, "desc": "沈 (submersion/drowning) is a ritual event mentioned in inscription 07985"}, {"id": 39, "label": "伐", "title": "<b>伐</b><br>类型: EVENT<br>度数: 1<br><i>伐 (cutting/slaughter) is a ritual event mentioned in inscription 07793...</i>", "type": "EVENT", "group": "EVENT", "color": "#3498db", "value": 1, "degree": 1, "desc": "伐 (cutting/slaughter) is a ritual event mentioned in inscription 07793"}]);
+const edges = new vis.DataSet([{"from": 0, "to": 1, "label": "The king, referred to as \"王\" in the orac...", "title": "The king, referred to as &quot;王&quot; in the oracle bone inscriptions, is frequently the subject of divination concerning whether he should enter or not enter a place called Shang (商). These repeated divinatio", "weight": 18.0}, {"from": 0, "to": 2, "label": "The diviner **争** (Zheng) served as a ri...", "title": "The diviner **争** (Zheng) served as a ritual specialist who performed divinations on behalf of the king **王**. These divinations were specifically concerned with the king&#x27;s activities, including inqui", "weight": 15.0}, {"from": 0, "to": 3, "label": "The diviner Nei performed a divination a...", "title": "The diviner Nei performed a divination about the king entering Shang, showing a direct ritual advisory relationship", "weight": 6.0}, {"from": 0, "to": 4, "label": "Based on the provided descriptions, the ...", "title": "Based on the provided descriptions, the entities **王** (King) and **殻** (Que) are central figures in a ritual and divinatory relationship. The diviner, **Que** (also transcribed as **殻**), conducted d", "weight": 14.0}, {"from": 0, "to": 5, "label": "Based on the provided data, the entities...", "title": "Based on the provided data, the entities &quot;王&quot; (the King) and &quot;戊&quot; (Wu) are involved in a direct administrative and command relationship. The king issued a command to Wu, instructing him to proceed to th", "weight": 14.0}, {"from": 0, "to": 6, "label": "Based on the provided data, the entities...", "title": "Based on the provided data, the entities are &quot;王&quot; (the king) and &quot;匚&quot; (Fang, a place). The descriptions indicate a clear relationship of movement, activity, and ritual between the king and this location", "weight": 6.0}, {"from": 0, "to": 7, "label": "The king is divined to perform a sacrifi...", "title": "The king is divined to perform a sacrificial offering (侑) to Qiang Jia (羌甲), indicating a ritual ancestor worship relationship", "weight": 1.0}, {"from": 0, "to": 8, "label": "The king's actions on the day Gengxu wer...", "title": "The king&#x27;s actions on the day Gengxu were the subject of divination, linking the king to that event", "weight": 6.0}, {"from": 0, "to": 9, "label": "The king's entry was divined for the day...", "title": "The king&#x27;s entry was divined for the day Xinhai, linking the king to that event", "weight": 5.0}, {"from": 0, "to": 10, "label": "The king's entry and \"橐\" (bag/sack) acti...", "title": "The king&#x27;s entry and &quot;橐&quot; (bag/sack) action were divined for the day Yimao", "weight": 5.0}, {"from": 0, "to": 11, "label": "Multiple divinations on Xinwei concern t...", "title": "Multiple divinations on Xinwei concern the king&#x27;s evening travel and entry into Shang in the seventh month", "weight": 7.0}, {"from": 0, "to": 15, "label": "The king's entry into Shang was divined ...", "title": "The king&#x27;s entry into Shang was divined for the event of the second month", "weight": 5.0}, {"from": 0, "to": 16, "label": "The king's entry into Shang was divined ...", "title": "The king&#x27;s entry into Shang was divined for the event of the sixth month", "weight": 5.0}, {"from": 0, "to": 17, "label": "The king's entry into Shang was repeated...", "title": "The king&#x27;s entry into Shang was repeatedly divined for the coming seventh month, indicating a planned event", "weight": 8.0}, {"from": 0, "to": 18, "label": "The king was divined about going to insp...", "title": "The king was divined about going to inspect or visit the southern region (南)", "weight": 6.0}, {"from": 0, "to": 19, "label": "The king was divined to go out to the pl...", "title": "The king was divined to go out to the place Jiechi and perform a ritual (昙)", "weight": 5.0}, {"from": 0, "to": 20, "label": "The king was divined to go out to the pl...", "title": "The king was divined to go out to the place Mao and avoid a certain action", "weight": 5.0}, {"from": 0, "to": 21, "label": "The king summoned (乎) Yun Nie, indicatin...", "title": "The king summoned (乎) Yun Nie, indicating a command relationship", "weight": 6.0}, {"from": 0, "to": 22, "label": "The king was divined about showing or pr...", "title": "The king was divined about showing or presenting (示), linking to a ritual official", "weight": 4.0}, {"from": 0, "to": 24, "label": "The king is part of the collective \"we\" ...", "title": "The king is part of the collective &quot;we&quot; (我) that performs sacrifices of cattle and sheep", "weight": 5.0}, {"from": 24, "to": 26, "label": "The collective \"we\" is divined to offer ...", "title": "The collective &quot;we&quot; is divined to offer ordinary cattle in a ritual event", "weight": 5.0}, {"from": 24, "to": 25, "label": "The collective \"we\" is divined to offer ...", "title": "The collective &quot;we&quot; is divined to offer bundled sheep in a ritual event", "weight": 5.0}, {"from": 0, "to": 28, "label": "The king was divined about the event of ...", "title": "The king was divined about the event of returning (复), showing a personal action relationship", "weight": 6.0}, {"from": 0, "to": 27, "label": "The king was divined about performing th...", "title": "The king was divined about performing the cutting ritual (卯), indicating ritual involvement", "weight": 5.0}, {"from": 2, "to": 8, "label": "The diviner Zheng performed a divination...", "title": "The diviner Zheng performed a divination on the day Gengxu", "weight": 6.0}, {"from": 2, "to": 12, "label": "The diviner Zheng performed a divination...", "title": "The diviner Zheng performed a divination on the day Jiayin", "weight": 6.0}, {"from": 2, "to": 11, "label": "The diviner Zheng performed multiple div...", "title": "The diviner Zheng performed multiple divinations on the day Xinwei concerning the king and Shang", "weight": 8.0}, {"from": 3, "to": 8, "label": "The diviner Nei performed a divination o...", "title": "The diviner Nei performed a divination on the day Gengxu about the king entering Shang", "weight": 7.0}, {"from": 0, "to": 29, "label": "殽 conducts divinations on behalf of the ...", "title": "殽 conducts divinations on behalf of the king, asking about the king&#x27;s entry into Shang in specific months", "weight": 7.0}, {"from": 0, "to": 30, "label": "The king's entry into Shang is repeatedl...", "title": "The king&#x27;s entry into Shang is repeatedly scheduled in the seventh month, as divined", "weight": 8.0}, {"from": 0, "to": 31, "label": "The king's entry into Shang is also sche...", "title": "The king&#x27;s entry into Shang is also scheduled in the eighth month in some divinations", "weight": 6.0}, {"from": 4, "to": 30, "label": "殻 divines about the king's entry into Sh...", "title": "殻 divines about the king&#x27;s entry into Shang specifically in the seventh month", "weight": 6.0}, {"from": 29, "to": 30, "label": "殽（Xiao）is a figure associated with divin...", "title": "殽（Xiao）is a figure associated with divination in the context of Shang dynasty oracle bone inscriptions. According to the provided descriptions, 殽 conducted divinations concerning the king&#x27;s entry into", "weight": 7.0}, {"from": 32, "to": 30, "label": "散 divines about the king's entry in the ...", "title": "散 divines about the king&#x27;s entry in the seventh month", "weight": 4.0}, {"from": 33, "to": 30, "label": "爭 divines about the king's entry in the ...", "title": "爭 divines about the king&#x27;s entry in the seventh month", "weight": 5.0}, {"from": 0, "to": 35, "label": "The king performs a ritual offering (有佑)...", "title": "The king performs a ritual offering (有佑) to Mother Geng", "weight": 4.0}, {"from": 0, "to": 34, "label": "The king is related to the person or cla...", "title": "The king is related to the person or clan Ji, mentioned in the same inscription", "weight": 2.0}, {"from": 0, "to": 37, "label": "A report comes from the west (西) concern...", "title": "A report comes from the west (西) concerning the king&#x27;s affairs", "weight": 3.0}, {"from": 0, "to": 39, "label": "The king performs a cutting/slaughter ri...", "title": "The king performs a cutting/slaughter ritual (伐) in the seventh month", "weight": 4.0}, {"from": 0, "to": 38, "label": "The king is involved in a submersion rit...", "title": "The king is involved in a submersion ritual (沈) at Guang", "weight": 1.0}]);
+
+const container = document.getElementById('graph');
+const data = { nodes: nodes, edges: edges };
+
+const options = {
+  nodes: {
+    shape: 'dot',
+    scaling: {
+      min: 8, max: 40,
+      label: { enabled: true, min: 12, max: 22, maxVisible: 30 }
+    },
+    font: { size: 12, face: 'Microsoft YaHei, PingFang SC, sans-serif', color: '#333' },
+    borderWidth: 1.5,
+    borderWidthSelected: 3,
+    shadow: { enabled: true, size: 4 },
+  },
+  edges: {
+    arrows: { to: { enabled: true, scaleFactor: 0.6 } },
+    smooth: { type: 'curvedCW', roundness: 0.2 },
+    font: { size: 9, face: 'Microsoft YaHei, PingFang SC, sans-serif', color: '#888', strokeWidth: 0 },
+    width: 1,
+    color: { color: '#c0c0c0', highlight: '#3498db', hover: '#3498db' },
+  },
+  physics: {
+    forceAtlas2Based: {
+      gravitationalConstant: -40,
+      centralGravity: 0.005,
+      springLength: 150,
+      springConstant: 0.08,
+    },
+    maxVelocity: 30,
+    solver: 'forceAtlas2Based',
+    stabilization: { iterations: 200, updateInterval: 25 },
+  },
+  interaction: {
+    hover: true,
+    tooltipDelay: 200,
+    navigationButtons: true,
+    keyboard: true,
+  },
+};
+
+const network = new vis.Network(container, data, options);
+
+// 点击节点显示详情
+network.on('click', function(params) {
+  if (params.nodes.length > 0) {
+    const nodeId = params.nodes[0];
+    const node = nodes.get(nodeId);
+    const panel = document.getElementById('detail-panel');
+    const content = document.getElementById('detail-content');
+    const typeColors = {"PERSON": "#e74c3c", "EVENT": "#3498db", "GEO": "#2ecc71", "ORGANIZATION": "#f39c12"};
+    const color = typeColors[node.type] || '#95a5a6';
+    content.innerHTML = `<h3>${node.label}</h3>
+      <span class="type-badge" style="background:${color}">${node.type}</span>
+      <p><b>度数:</b> ${node.degree}</p>
+      <p style="color:#555">${(node.desc || '').substring(0, 200)}</p>`;
+    panel.classList.add('show');
+  } else {
+    closeDetail();
+  }
+});
+
+function closeDetail() {
+  document.getElementById('detail-panel').classList.remove('show');
+}
+
+// 搜索功能
+function searchNode() {
+  const query = document.getElementById('search-input').value.trim().toLowerCase();
+  if (!query) return;
+  const allNodes = nodes.get();
+  const found = allNodes.filter(n => n.label && n.label.toLowerCase().includes(query));
+  if (found.length > 0) {
+    network.selectNodes([found[0].id]);
+    network.focus(found[0].id, { scale: 1.5, animation: true });
+  }
+}
+
+function resetGraph() {
+  network.fit({ animation: true });
+  network.unselectAll();
+  closeDetail();
+}
+
+function highlightCommunity(communityId) {
+  // 简单重置
+  nodes.update(nodes.get().map(n => ({ id: n.id, opacity: 1 })));
+  network.fit({ animation: true });
+}
+
+// 响应式
+window.addEventListener('resize', () => network.fit());
+</script>
+</body>
+</html>
